@@ -2,7 +2,7 @@
 # Harvest Hustle - "From Farm to Feast in 90 Seconds!"
 
 ## Game Overview
-A 90s-era style handheld electronic game where players catch and collect raw cooking ingredients by chasing animals, picking crops, and harvesting resources. Some levels include special mechanics such as avoiding bees or sharks. The player’s goal is to finish each level before time runs out. Built using Xiao ESP32C3, SSD1306 OLED, ADXL345 accelerometer, rotary encoder, and NeoPixels.
+A 90s-era style handheld electronic game where players catch and collect raw cooking ingredients by chasing animals, picking crops, and harvesting resources. Some levels include special mechanics such as avoiding bees or sharks. The player’s goal is to finish each level before time runs out. Built using Xiao ESP32C3, SSD1306 OLED, ADXL345 accelerometer, rotary encoder, buzzer and NeoPixels.
 
 ---
 
@@ -41,9 +41,9 @@ Select difficulty using the Rotary Encoder (clockwise only) on the mode selectio
 | **Press Button** | Encoder Button | Confirm selection / Cooking action | Manual debounce 50ms |
 
 ### Accelerometer Orientation
-The accelerometer is mounted rotated 180° clockwise:
-- X axis points **left** ⬅️
-- Y axis points **down** ⬇️
+Standard orientation:
+- X axis → **left/right**
+- Y axis → **forward/backward**
 
 ---
 
@@ -212,23 +212,39 @@ For example, chasing the chicken or pig to collect ingredients, or shaking the c
          ▼
 ┌─────────────────┐      Time runs out
 │    Gameplay     │ ─────────────────────► Game Over
-│  Collect items! │                        (Rotate: Retry/Restart)
-└────────┬────────┘
-         │ All ingredients collected
-         ▼
-┌─────────────────┐
-│ Cooking Phase   │  (Some levels only)
-│ Hold Button!    │  Or Rotate encoder
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐      Level 11 complete
-│  Level Clear!   │ ─────────────────────► 🎉 WIN SCREEN! 🎉
-│  Shows dish!    │                        "MASTER CHEF!"
-└────────┬────────┘
-         │
-         ▼
-    Next Level...
+│  Collect items! │                        (Retry/Restart)
+└────────┬────────┘                              │
+         │ All collected                         │ Restart
+         ▼                                       ▼
+┌─────────────────┐                    ┌─────────────────┐
+│ Cooking Phase   │                    │  High Score?    │
+│ Hold Button!    │                    │  Enter Initials │
+└────────┬────────┘                    └────────┬────────┘
+         │                                      ▼
+         ▼                             ┌─────────────────┐
+┌─────────────────┐   Level 11         │  High Scores    │
+│  Level Clear!   │ ───────────┐       │     Board       │
+│  Shows dish!    │            │       └────────┬────────┘
+└────────┬────────┘            │                │
+         │                     ▼                ▼
+         ▼              ┌─────────────────┐   Mode Select
+    Next Level...       │  🎉 WIN! 🎉     │
+                        │  MASTER CHEF!   │
+                        └────────┬────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │  High Score?    │
+                        │  Enter Initials │
+                        └────────┬────────┘
+                                 ▼
+                        ┌─────────────────┐
+                        │  High Scores    │
+                        │     Board       │
+                        └────────┬────────┘
+                                 │
+                                 ▼
+                           Title Screen
 ```
 
 ---
@@ -238,7 +254,7 @@ For example, chasing the chicken or pig to collect ingredients, or shaking the c
 ```
 ┌────────────────────────────┐
 │        GAME OVER           │
-│         Level 3            │
+│       Score: 350           │
 │                            │
 │   > Retry Level            │  ← Rotate to select
 │     Restart Game           │
@@ -248,8 +264,8 @@ For example, chasing the chicken or pig to collect ingredients, or shaking the c
 
 | Selection | Action |
 |-----------|--------|
-| **Retry Level** | Restart current level with same settings |
-| **Restart Game** | Return to difficulty mode selection |
+| **Retry Level** | Restart current level (forfeits level points) |
+| **Restart Game** | Check high score, then return to mode selection |
 
 ---
 
@@ -275,6 +291,29 @@ First hold button, then rotate encoder.
 Phase 1: Roasting...    → Hold Button to 100%
 Phase 2: Making Wine... → Rotate Encoder to 100%
 ```
+
+---
+
+## Scoring System
+
+Points are awarded based on the collection method:
+
+| Collection Method | Points per Ingredient |
+|-------------------|----------------------|
+| **Tilt** | 10 pts |
+| **Touch** | 20 pts |
+| **Shake** | 30 pts |
+| **Rotate** | 50 pts |
+
+### Score Display
+- **Level Clear Screen:** Shows points earned in that level (+XXX pts)
+- **Game Over Screen:** Shows total score accumulated
+- **Win Screen:** Shows final score for all 11 levels
+
+### Score Rules
+- Points are earned immediately when collecting ingredients
+- **Retry Level:** Points from failed attempt are forfeited (subtracted)
+- **Restart Game:** Total score resets to 0
 
 ---
 
@@ -328,6 +367,22 @@ Phase 2: Making Wine... → Rotate Encoder to 100%
 | **Rotary Encoder DT** | D1 | Rotation direction |
 | **Encoder Button** | D6 | Confirm/Action button |
 | **NeoPixel LEDs (×8)** | D3 | Visual feedback |
+| **Piezo Buzzer** | D2 | Audio feedback |
+
+---
+
+## Audio Feedback System
+
+| Event | Sound | Description |
+|-------|-------|-------------|
+| **Power On** | Ascending 3-tone | Splash screen startup jingle |
+| **Game Start** | C-E-G-C ascending | When starting a level |
+| **Collect Item** | A5-C#6 quick beep | Successfully collecting an ingredient |
+| **Menu Select** | Short click | Rotating through options |
+| **Level Clear** | G-B-D ascending | Completing a level |
+| **Game Over** | G-E-C descending | Time runs out |
+| **Victory** | C-E-G-C + G-C fanfare | Beating all 11 levels |
+| **Penalty** | Low 200-150Hz buzz | Wrong move or bee sting |
 
 ---
 
@@ -341,6 +396,8 @@ Phase 2: Making Wine... → Rotate Encoder to 100%
 | **Touch Time** | 0.6 seconds | Time to stay near animal for touch collection |
 | **Button Debounce** | 50ms | Prevents double-press |
 | **Rotate Needed** | 5 (default) | Encoder rotations for rotate items |
+| **High Score Count** | 3 | Number of high scores stored |
+| **High Score Storage** | NVM | Uses microcontroller.nvm (15 bytes) |
 
 ---
 
@@ -356,16 +413,56 @@ Phase 2: Making Wine... → Rotate Encoder to 100%
 | Cooking | Rotate (phase 2) | Hold to cook (phase 1) |
 | Clear | - | Next level |
 | Game Over | Toggle: Retry ↔ Restart | Confirm selection |
-| Win | - | Restart game |
+| Win | - | Continue to high scores |
+| Enter Initials | Cycle A-Z | Confirm letter |
+| High Scores | - | Restart game |
+
+---
+
+## High Score System
+
+The game tracks the top 3 scores with player initials, saved to the microcontroller's onboard NVM (non-volatile memory).
+
+### How It Works
+
+1. **After Game Over or Win:** The game checks if your score qualifies for the high score board
+2. **New High Score:** If you achieved a high score, you enter your 3-letter initials
+3. **Initials Entry:** Rotate encoder to cycle A-Z, press to confirm each letter
+4. **High Score Board:** Shows top 3 scores with initials
+5. **Persistent Storage:** Scores are saved to ESP32C3 NVM and survive power cycles
+
+### High Score Screens
+
+**Enter Initials Screen:**
+```
+┌────────────────────────────┐
+│     NEW HIGH SCORE!        │
+│       Score: 450           │
+│                            │
+│     Enter Initials:        │
+│         A B _              │
+│           ^                │
+└────────────────────────────┘
+```
+
+**High Scores Board:**
+```
+┌────────────────────────────┐
+│      HIGH SCORES           │
+│                            │
+│   1. ABC  1250             │
+│   2. XYZ   890             │
+│   3. QRS   450             │
+│                            │
+│     [Press Continue]       │
+└────────────────────────────┘
+```
 
 ---
 
 ## Future Enhancement Ideas
 
-- [ ] High score saving (using ESP32 flash memory)
-- [ ] Sound effects via buzzer (catch sounds, cooking sizzle)
 - [ ] Two-player competitive mode
 - [ ] Seasonal level packs (Halloween, Christmas themes)
 - [ ] Achievement badges displayed on win screen
 - [ ] Endless mode after completing all 11 levels
-- [ ] Counter-clockwise encoder support for reverse navigation
